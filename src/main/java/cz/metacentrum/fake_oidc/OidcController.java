@@ -244,7 +244,7 @@ public class OidcController {
         map.put("token_type", "Bearer");
         map.put("expires_in", String.valueOf(serverProperties.getTokenExpirationSeconds()));
         map.put("scope", codeInfo.scope);
-        map.put("id_token", createIdToken(codeInfo.iss, codeInfo.user, codeInfo.client_id, codeInfo.nonce, accessToken));
+        map.put("id_token", createIdToken(codeInfo.iss, codeInfo.user, codeInfo.client_id, codeInfo.client_name, codeInfo.client_password, codeInfo.nonce, accessToken));
         return ResponseEntity.ok(map);
     }
 
@@ -283,7 +283,7 @@ public class OidcController {
                         // implicit flow
                         log.info("using implicit flow");
                         String access_token = createAccessToken(iss, user, client_id, scope);
-                        String id_token = createIdToken(iss, user, client_id, nonce, access_token);
+                        String id_token = createIdToken(iss, user, client_id, login, password, nonce, access_token);
                         String url = redirect_uri + "#" +
                                 "access_token=" + urlencode(access_token) +
                                 "&token_type=Bearer" +
@@ -294,7 +294,7 @@ public class OidcController {
                     } else if (responseType.contains("code")) {
                         // authorization code flow
                         log.info("using authorization code flow {}", code_challenge != null ? "with PKCE" : "");
-                        String code = createAuthorizationCode(code_challenge, code_challenge_method, client_id, redirect_uri, user, iss, scope, nonce);
+                        String code = createAuthorizationCode(code_challenge, code_challenge_method, client_id, login, password, redirect_uri, user, iss, scope, nonce);
                         String url = redirect_uri + "?" +
                                 "code=" + code +
                                 "&state=" + urlencode(state);
@@ -309,12 +309,12 @@ public class OidcController {
         }
     }
 
-    private String createAuthorizationCode(String code_challenge, String code_challenge_method, String client_id, String redirect_uri, User user, String iss, String scope, String nonce) {
+    private String createAuthorizationCode(String code_challenge, String code_challenge_method, String client_id, String client_name, String client_password, String redirect_uri, User user, String iss, String scope, String nonce) {
         byte[] bytes = new byte[16];
         random.nextBytes(bytes);
         String code = Base64URL.encode(bytes).toString();
         log.info("issuing code={}", code);
-        authorizationCodes.put(code, new CodeInfo(code_challenge, code_challenge_method, code, client_id, redirect_uri, user, iss, scope, nonce));
+        authorizationCodes.put(code, new CodeInfo(code_challenge, code_challenge_method, code, client_id, client_name, client_password, redirect_uri, user, iss, scope, nonce));
         return code;
     }
 
@@ -339,7 +339,7 @@ public class OidcController {
         return access_token;
     }
 
-    private String createIdToken(String iss, User user, String client_id, String nonce, String accessToken) throws NoSuchAlgorithmException, JOSEException {
+    private String createIdToken(String iss, User user, String client_id, String client_name, String client_password, String nonce, String accessToken) throws NoSuchAlgorithmException, JOSEException {
         // compute at_hash
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
         digest.reset();
@@ -357,6 +357,8 @@ public class OidcController {
                 .jwtID(UUID.randomUUID().toString())
                 .claim("nonce", nonce)
                 .claim("at_hash", encodedHash)
+                .claim("client_name", client_name)
+                .claim("client_password", client_password)
                 .build();
         // create JWT token
         SignedJWT myToken = new SignedJWT(jwsHeader, jwtClaimsSet);
@@ -401,17 +403,21 @@ public class OidcController {
         final String codeChallengeMethod;
         final String code;
         final String client_id;
+        final String client_name;
+        final String client_password;
         final String redirect_uri;
         final User user;
         final String iss;
         final String scope;
         final String nonce;
 
-        public CodeInfo(String codeChallenge, String codeChallengeMethod, String code, String client_id, String redirect_uri, User user, String iss, String scope, String nonce) {
+        public CodeInfo(String codeChallenge, String codeChallengeMethod, String code, String client_id, String client_name, String client_password, String redirect_uri, User user, String iss, String scope, String nonce) {
             this.codeChallenge = codeChallenge;
             this.codeChallengeMethod = codeChallengeMethod;
             this.code = code;
             this.client_id = client_id;
+            this.client_name = client_name;
+            this.client_password = client_password;
             this.redirect_uri = redirect_uri;
             this.user = user;
             this.iss = iss;
