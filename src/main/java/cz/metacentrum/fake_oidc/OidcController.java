@@ -90,7 +90,8 @@ public class OidcController {
     }
 
     /**
-     * Provides OIDC metadata. See the spec at https://openid.net/specs/openid-connect-discovery-1_0.html
+     * Provides OIDC metadata. See the spec at
+     * https://openid.net/specs/openid-connect-discovery-1_0.html
      */
     @RequestMapping(value = METADATA_ENDPOINT, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     @CrossOrigin
@@ -108,16 +109,18 @@ public class OidcController {
         m.put("introspection_endpoint", urlPrefix + INTROSPECTION_ENDPOINT);
         m.put("scopes_supported", Arrays.asList("openid", "profile", "email")); // RECOMMENDED
         m.put("response_types_supported", Arrays.asList("id_token token", "code")); // REQUIRED
-        m.put("grant_types_supported", Arrays.asList("authorization_code", "implicit")); //OPTIONAL
+        m.put("grant_types_supported", Arrays.asList("authorization_code", "implicit")); // OPTIONAL
         m.put("subject_types_supported", Collections.singletonList("public")); // REQUIRED
         m.put("id_token_signing_alg_values_supported", Arrays.asList("RS256", "none")); // REQUIRED
-        m.put("claims_supported", Arrays.asList("sub", "iss", "name", "family_name", "given_name", "preferred_username", "email"));
+        m.put("claims_supported",
+                Arrays.asList("sub", "iss", "name", "family_name", "given_name", "preferred_username", "email"));
         m.put("code_challenge_methods_supported", Arrays.asList("plain", "S256")); // PKCE support advertised
         return ResponseEntity.ok().body(m);
     }
 
     /**
-     * Provides JSON Web Key Set containing the public part of the key used to sign ID tokens.
+     * Provides JSON Web Key Set containing the public part of the key used to sign
+     * ID tokens.
      */
     @RequestMapping(value = JWKS_ENDPOINT, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     @CrossOrigin
@@ -130,10 +133,10 @@ public class OidcController {
      * Provides claims about a user. Requires a valid access token.
      */
     @RequestMapping(value = USERINFO_ENDPOINT, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    @CrossOrigin(allowedHeaders = {"Authorization", "Content-Type"})
+    @CrossOrigin(allowedHeaders = { "Authorization", "Content-Type" })
     public ResponseEntity<?> userinfo(@RequestHeader("Authorization") String auth,
-                                      @RequestParam(required = false) String access_token,
-                                      HttpServletRequest req) {
+            @RequestParam(required = false) String access_token,
+            HttpServletRequest req) {
         log.info("called " + USERINFO_ENDPOINT + " from {}", req.getRemoteHost());
         if (!auth.startsWith("Bearer ")) {
             if (access_token == null) {
@@ -168,8 +171,8 @@ public class OidcController {
      */
     @RequestMapping(value = INTROSPECTION_ENDPOINT, method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> introspection(@RequestParam String token,
-                                           @RequestHeader("Authorization") String auth,
-                                           HttpServletRequest req) {
+            @RequestHeader("Authorization") String auth,
+            HttpServletRequest req) {
         log.info("called " + INTROSPECTION_ENDPOINT + " from {}", req.getRemoteHost());
         Map<String, Object> m = new LinkedHashMap<>();
         AccessTokenInfo accessTokenInfo = accessTokens.get(token);
@@ -177,7 +180,8 @@ public class OidcController {
             log.error("token not found in memory: {}", token);
             m.put("active", false);
         } else {
-            log.info("found token for user {}, releasing scopes: {}", accessTokenInfo.user.getSub(), accessTokenInfo.scope);
+            log.info("found token for user {}, releasing scopes: {}", accessTokenInfo.user.getSub(),
+                    accessTokenInfo.scope);
             // see https://tools.ietf.org/html/rfc7662#section-2.2 for all claims
             m.put("active", true);
             m.put("scope", accessTokenInfo.scope);
@@ -197,14 +201,15 @@ public class OidcController {
     @RequestMapping(value = TOKEN_ENDPOINT, method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
     @CrossOrigin
     public ResponseEntity<?> token(@RequestParam String grant_type,
-                                   @RequestParam String code,
-                                   @RequestParam String redirect_uri,
-                                   @RequestParam(required = false) String client_id,
-                                   @RequestParam(required = false) String code_verifier,
-                                   @RequestHeader(name = "Authorization", required = false) String auth,
-                                   UriComponentsBuilder uriBuilder,
-                                   HttpServletRequest req) throws NoSuchAlgorithmException, JOSEException {
-        log.info("called " + TOKEN_ENDPOINT + " from {}, grant_type={} code={} redirect_uri={} client_id={}", req.getRemoteHost(), grant_type, code, redirect_uri, client_id);
+            @RequestParam String code,
+            @RequestParam String redirect_uri,
+            @RequestParam(required = false) String client_id,
+            @RequestParam(required = false) String code_verifier,
+            @RequestHeader(name = "Authorization", required = false) String auth,
+            UriComponentsBuilder uriBuilder,
+            HttpServletRequest req) throws NoSuchAlgorithmException, JOSEException {
+        log.info("called " + TOKEN_ENDPOINT + " from {}, grant_type={} code={} redirect_uri={} client_id={}",
+                req.getRemoteHost(), grant_type, code, redirect_uri, client_id);
         if (!"authorization_code".equals(grant_type)) {
             return jsonError("unsupported_grant_type", "grant_type is not authorization_code");
         }
@@ -226,13 +231,15 @@ public class OidcController {
                 s256.update(code_verifier.getBytes(StandardCharsets.UTF_8));
                 String hashedVerifier = Base64URL.encode(s256.digest()).toString();
                 if (!codeInfo.codeChallenge.equals(hashedVerifier)) {
-                    log.warn("code_verifier {} hashed using S256 to {} does not match code_challenge {}", code_verifier, hashedVerifier, codeInfo.codeChallenge);
+                    log.warn("code_verifier {} hashed using S256 to {} does not match code_challenge {}", code_verifier,
+                            hashedVerifier, codeInfo.codeChallenge);
                     return jsonError("invalid_request", "code_verifier not correct");
                 }
                 log.info("code_verifier OK");
             } else {
                 if (!codeInfo.codeChallenge.equals(code_verifier)) {
-                    log.warn("code_verifier {} does not match code_challenge {}", code_verifier, codeInfo.codeChallenge);
+                    log.warn("code_verifier {} does not match code_challenge {}", code_verifier,
+                            codeInfo.codeChallenge);
                     return jsonError("invalid_request", "code_verifier not correct");
                 }
             }
@@ -244,28 +251,29 @@ public class OidcController {
         map.put("token_type", "Bearer");
         map.put("expires_in", String.valueOf(serverProperties.getTokenExpirationSeconds()));
         map.put("scope", codeInfo.scope);
-        map.put("id_token", createIdToken(codeInfo.iss, codeInfo.user, codeInfo.client_id, codeInfo.client_name, codeInfo.client_password, codeInfo.nonce, accessToken));
+        map.put("id_token", createIdToken(codeInfo.iss, codeInfo.user, codeInfo.client_id, codeInfo.client_name,
+                codeInfo.client_password, codeInfo.nonce, accessToken));
         return ResponseEntity.ok(map);
     }
-
 
     /**
      * Provides authorization endpoint.
      */
     @RequestMapping(value = AUTHORIZATION_ENDPOINT, method = RequestMethod.GET)
     public ResponseEntity<?> authorize(@RequestParam String client_id,
-                                       @RequestParam String redirect_uri,
-                                       @RequestParam String response_type,
-                                       @RequestParam String scope,
-                                       @RequestParam String state,
-                                       @RequestParam(required = false) String nonce,
-                                       @RequestParam(required = false) String code_challenge,
-                                       @RequestParam(required = false) String code_challenge_method,
-                                       @RequestParam(required = false) String response_mode,
-                                       @RequestHeader(name = "Authorization", required = false) String auth,
-                                       UriComponentsBuilder uriBuilder,
-                                       HttpServletRequest req) throws JOSEException, NoSuchAlgorithmException {
-        log.info("called " + AUTHORIZATION_ENDPOINT + " from {}, scope={} response_type={} client_id={} redirect_uri={}",
+            @RequestParam String redirect_uri,
+            @RequestParam String response_type,
+            @RequestParam String scope,
+            @RequestParam String state,
+            @RequestParam(required = false) String nonce,
+            @RequestParam(required = false) String code_challenge,
+            @RequestParam(required = false) String code_challenge_method,
+            @RequestParam(required = false) String response_mode,
+            @RequestHeader(name = "Authorization", required = false) String auth,
+            UriComponentsBuilder uriBuilder,
+            HttpServletRequest req) throws JOSEException, NoSuchAlgorithmException {
+        log.info(
+                "called " + AUTHORIZATION_ENDPOINT + " from {}, scope={} response_type={} client_id={} redirect_uri={}",
                 req.getRemoteHost(), scope, response_type, client_id, redirect_uri);
         if (auth == null) {
             log.info("user and password not provided");
@@ -294,7 +302,8 @@ public class OidcController {
                     } else if (responseType.contains("code")) {
                         // authorization code flow
                         log.info("using authorization code flow {}", code_challenge != null ? "with PKCE" : "");
-                        String code = createAuthorizationCode(code_challenge, code_challenge_method, client_id, login, password, redirect_uri, user, iss, scope, nonce);
+                        String code = createAuthorizationCode(code_challenge, code_challenge_method, client_id, login,
+                                password, redirect_uri, user, iss, scope, nonce);
                         String url = redirect_uri + "?" +
                                 "code=" + code +
                                 "&state=" + urlencode(state);
@@ -309,12 +318,15 @@ public class OidcController {
         }
     }
 
-    private String createAuthorizationCode(String code_challenge, String code_challenge_method, String client_id, String client_name, String client_password, String redirect_uri, User user, String iss, String scope, String nonce) {
+    private String createAuthorizationCode(String code_challenge, String code_challenge_method, String client_id,
+            String client_name, String client_password, String redirect_uri, User user, String iss, String scope,
+            String nonce) {
         byte[] bytes = new byte[16];
         random.nextBytes(bytes);
         String code = Base64URL.encode(bytes).toString();
         log.info("issuing code={}", code);
-        authorizationCodes.put(code, new CodeInfo(code_challenge, code_challenge_method, code, client_id, client_name, client_password, redirect_uri, user, iss, scope, nonce));
+        authorizationCodes.put(code, new CodeInfo(code_challenge, code_challenge_method, code, client_id, client_name,
+                client_password, redirect_uri, user, iss, scope, nonce));
         return code;
     }
 
@@ -339,7 +351,8 @@ public class OidcController {
         return access_token;
     }
 
-    private String createIdToken(String iss, User user, String client_id, String client_name, String client_password, String nonce, String accessToken) throws NoSuchAlgorithmException, JOSEException {
+    private String createIdToken(String iss, User user, String client_id, String client_name, String client_password,
+            String nonce, String accessToken) throws NoSuchAlgorithmException, JOSEException {
         // compute at_hash
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
         digest.reset();
@@ -353,7 +366,8 @@ public class OidcController {
                 .issuer(iss)
                 .audience(client_id)
                 .issueTime(new Date())
-                .expirationTime(new Date(System.currentTimeMillis() + serverProperties.getTokenExpirationSeconds() * 1000L))
+                .expirationTime(
+                        new Date(System.currentTimeMillis() + serverProperties.getTokenExpirationSeconds() * 1000L))
                 .jwtID(UUID.randomUUID().toString())
                 .claim("nonce", nonce)
                 .claim("at_hash", encodedHash)
@@ -375,9 +389,9 @@ public class OidcController {
         HttpHeaders responseHeaders = new HttpHeaders();
         responseHeaders.setContentType(MediaType.TEXT_HTML);
         responseHeaders.add("WWW-Authenticate", "Basic realm=\"Fake OIDC server\"");
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).headers(responseHeaders).body("<html><body><h1>401 Unauthorized</h1>Fake OIDC server</body></html>");
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).headers(responseHeaders)
+                .body("<html><body><h1>401 Unauthorized</h1>Fake OIDC server</body></html>");
     }
-
 
     private static class AccessTokenInfo {
         final User user;
@@ -387,7 +401,8 @@ public class OidcController {
         final String clientId;
         final String iss;
 
-        public AccessTokenInfo(User user, String accessToken, Date expiration, String scope, String clientId, String iss) {
+        public AccessTokenInfo(User user, String accessToken, Date expiration, String scope, String clientId,
+                String iss) {
             this.user = user;
             this.accessToken = accessToken;
             this.expiration = expiration;
@@ -411,7 +426,9 @@ public class OidcController {
         final String scope;
         final String nonce;
 
-        public CodeInfo(String codeChallenge, String codeChallengeMethod, String code, String client_id, String client_name, String client_password, String redirect_uri, User user, String iss, String scope, String nonce) {
+        public CodeInfo(String codeChallenge, String codeChallengeMethod, String code, String client_id,
+                String client_name, String client_password, String redirect_uri, User user, String iss, String scope,
+                String nonce) {
             this.codeChallenge = codeChallenge;
             this.codeChallengeMethod = codeChallengeMethod;
             this.code = code;
@@ -427,7 +444,8 @@ public class OidcController {
     }
 
     private static Set<String> setFromSpaceSeparatedString(String s) {
-        if (s == null || s.isBlank()) return Collections.emptySet();
+        if (s == null || s.isBlank())
+            return Collections.emptySet();
         return new HashSet<>(Arrays.asList(s.split(" ")));
     }
 
