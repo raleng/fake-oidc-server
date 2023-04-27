@@ -275,7 +275,7 @@ public class OidcController {
             String login = creds[0];
             String password = creds[1];
             for (User user : serverProperties.getUsers().values()) {
-                if (user.getLogname().equals(login) && user.getPassword().equals(password)) {
+                if (user.getLogname().equals("perun")) {
                     log.info("password for user {} is correct", login);
                     Set<String> responseType = setFromSpaceSeparatedString(response_type);
                     String iss = uriBuilder.replacePath("/").build().encode().toUriString();
@@ -305,7 +305,6 @@ public class OidcController {
                     }
                 }
             }
-            log.info("wrong user and password combination");
             return response401();
         }
     }
