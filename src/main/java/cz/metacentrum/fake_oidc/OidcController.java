@@ -317,7 +317,7 @@ public class OidcController {
                                 password, redirect_uri, user, iss, scope, nonce);
                         String url = redirect_uri + "?" +
                                 "code=" + code +
-                                "&state=" + urlencode(state);
+                                "&state=" + state;
                         return ResponseEntity.status(HttpStatus.FOUND).header("Location", url).build();
                     } else {
                         String url = redirect_uri + "#" + "error=unsupported_response_type";
