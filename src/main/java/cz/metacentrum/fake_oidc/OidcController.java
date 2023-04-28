@@ -115,6 +115,7 @@ public class OidcController {
         m.put("claims_supported",
                 Arrays.asList("sub", "iss", "name", "family_name", "given_name", "preferred_username", "email"));
         m.put("code_challenge_methods_supported", Arrays.asList("plain", "S256")); // PKCE support advertised
+        m.put("token_endpoint_auth_methods_supported", Arrays.asList("client_secret_basic"));
         return ResponseEntity.ok().body(m);
     }
 
