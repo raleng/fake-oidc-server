@@ -117,7 +117,6 @@ public class OidcController {
         m.put("claims_supported",
                 Arrays.asList("sub", "iss", "name", "family_name", "given_name", "preferred_username", "email"));
         m.put("code_challenge_methods_supported", Arrays.asList("plain", "S256")); // PKCE support advertised
-        m.put("token_endpoint_auth_methods_supported", Arrays.asList("client_secret_basic"));
         return ResponseEntity.ok().body(m);
     }
 
@@ -201,23 +200,14 @@ public class OidcController {
     /**
      * Provides token endpoint.
      */
-    @RequestMapping(value = TOKEN_ENDPOINT, method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @RequestMapping(value = TOKEN_ENDPOINT, method = RequestMethod.POST, consumes = "*/*", produces = MediaType.APPLICATION_JSON_VALUE)
     @CrossOrigin
-    public ResponseEntity<?> token(@RequestBody TokenEndpointRequestBody body)
+    public ResponseEntity<?> token(@RequestParam Map<String, String> body)
             throws NoSuchAlgorithmException, JOSEException {
-        // public ResponseEntity<?> token(@RequestParam String grant_type,
-        // @RequestParam String code,
-        // @RequestParam String redirect_uri,
-        // @RequestParam(required = false) String client_id,
-        // @RequestParam(required = false) String code_verifier,
-        // @RequestHeader(name = "Authorization", required = false) String auth,
-        // UriComponentsBuilder uriBuilder,
-        // HttpServletRequest req) throws NoSuchAlgorithmException, JOSEException {
-        String grant_type = body.getGrantType();
-        String code = body.getCode();
-        String redirect_uri = body.getRedirectUri();
-        // String client_id = null;
-        // String code_verifier = null;
+        log.info("called " + TOKEN_ENDPOINT);
+        String grant_type = body.get("grant_type");
+        String code = body.get("code");
+        String redirect_uri = body.get("redirect_uri");
         log.info("called " + TOKEN_ENDPOINT + ", grant_type={} code={} redirect_uri={} body={}", grant_type, code,
                 redirect_uri, body);
         if (!"authorization_code".equals(grant_type)) {
@@ -230,32 +220,6 @@ public class OidcController {
         if (!redirect_uri.equals(codeInfo.redirect_uri)) {
             return jsonError("invalid_request", "redirect_uri not valid");
         }
-        // if (codeInfo.codeChallenge != null) {
-        // // check PKCE
-        // if (code_verifier == null) {
-        // return jsonError("invalid_request", "code_verifier missing");
-        // }
-        // if ("S256".equals(codeInfo.codeChallengeMethod)) {
-        // MessageDigest s256 = MessageDigest.getInstance("SHA-256");
-        // s256.reset();
-        // s256.update(code_verifier.getBytes(StandardCharsets.UTF_8));
-        // String hashedVerifier = Base64URL.encode(s256.digest()).toString();
-        // if (!codeInfo.codeChallenge.equals(hashedVerifier)) {
-        // log.warn("code_verifier {} hashed using S256 to {} does not match
-        // code_challenge {}", code_verifier,
-        // hashedVerifier, codeInfo.codeChallenge);
-        // return jsonError("invalid_request", "code_verifier not correct");
-        // }
-        // log.info("code_verifier OK");
-        // } else {
-        // if (!codeInfo.codeChallenge.equals(code_verifier)) {
-        // log.warn("code_verifier {} does not match code_challenge {}", code_verifier,
-        // codeInfo.codeChallenge);
-        // return jsonError("invalid_request", "code_verifier not correct");
-        // }
-        // }
-        // }
-        // return access token
         Map<String, String> map = new LinkedHashMap<>();
         String accessToken = createAccessToken(codeInfo.iss, codeInfo.user, codeInfo.client_id, codeInfo.scope);
         map.put("access_token", accessToken);
@@ -422,30 +386,6 @@ public class OidcController {
             this.iss = iss;
         }
 
-    }
-
-    private static class TokenEndpointRequestBody {
-        private String grant_type;
-        private String code;
-        private String redirect_uri;
-
-        public TokenEndpointRequestBody(String grant_type, String code, String redirect_uri) {
-            this.grant_type = grant_type;
-            this.code = code;
-            this.redirect_uri = redirect_uri;
-        }
-
-        public String getGrantType() {
-            return this.grant_type;
-        }
-
-        public String getCode() {
-            return this.code;
-        }
-
-        public String getRedirectUri() {
-            return this.redirect_uri;
-        }
     }
 
     private static class CodeInfo {
