@@ -240,57 +240,61 @@ public class OidcController {
             @RequestParam String response_type,
             @RequestParam String scope,
             @RequestParam String state,
+            @RequestParam String givenName,
+            @RequestParam String familyName,
             @RequestParam(required = false) String nonce,
             @RequestParam(required = false) String code_challenge,
             @RequestParam(required = false) String code_challenge_method,
             @RequestParam(required = false) String response_mode,
-            @RequestHeader(name = "Authorization", required = false) String auth,
+            // @RequestHeader(name = "Authorization", required = false) String auth,
             UriComponentsBuilder uriBuilder,
             HttpServletRequest req) throws JOSEException, NoSuchAlgorithmException {
         log.info(
                 "called " + AUTHORIZATION_ENDPOINT + " from {}, scope={} response_type={} client_id={} redirect_uri={}",
                 req.getRemoteHost(), scope, response_type, client_id, redirect_uri);
-        if (auth == null) {
-            log.info("user and password not provided");
-            return response401();
-        } else {
-            String[] creds = new String(Base64.getDecoder().decode(auth.split(" ")[1])).split(":", 2);
-            String login = creds[0];
-            String password = creds[1];
-            for (User user : serverProperties.getUsers().values()) {
-                if (user.getLogname().equals("perun")) {
-                    log.info("password for user {} is correct", login);
-                    Set<String> responseType = setFromSpaceSeparatedString(response_type);
-                    String iss = uriBuilder.replacePath("/").build().encode().toUriString();
-                    if (responseType.contains("token")) {
-                        // implicit flow
-                        log.info("using implicit flow");
-                        String access_token = createAccessToken(iss, user, client_id, scope);
-                        String id_token = createIdToken(iss, user, client_id, login, password, nonce, access_token);
-                        String url = redirect_uri + "#" +
-                                "access_token=" + urlencode(access_token) +
-                                "&token_type=Bearer" +
-                                "&state=" + urlencode(state) +
-                                "&expires_in=" + serverProperties.getTokenExpirationSeconds() +
-                                "&id_token=" + urlencode(id_token);
-                        return ResponseEntity.status(HttpStatus.FOUND).header("Location", url).build();
-                    } else if (responseType.contains("code")) {
-                        // authorization code flow
-                        log.info("using authorization code flow {}", code_challenge != null ? "with PKCE" : "");
-                        String code = createAuthorizationCode(code_challenge, code_challenge_method, client_id, login,
-                                password, redirect_uri, user, iss, scope, nonce);
-                        String url = redirect_uri + "?" +
-                                "code=" + code +
-                                "&state=" + state;
-                        return ResponseEntity.status(HttpStatus.FOUND).header("Location", url).build();
-                    } else {
-                        String url = redirect_uri + "#" + "error=unsupported_response_type";
-                        return ResponseEntity.status(HttpStatus.FOUND).header("Location", url).build();
-                    }
+        // if (auth == null) {
+        // log.info("user and password not provided");
+        // return response401();
+        // } else {
+        // String[] creds = new String(Base64.getDecoder().decode(auth.split("
+        // ")[1])).split(":", 2);
+        // String login = creds[0];
+        // String password = creds[1];
+        for (User user : serverProperties.getUsers().values()) {
+            if (user.getLogname().equals("perun")) {
+                log.info("password for user {} is correct", "perun");
+                Set<String> responseType = setFromSpaceSeparatedString(response_type);
+                String iss = uriBuilder.replacePath("/").build().encode().toUriString();
+                if (responseType.contains("token")) {
+                    // implicit flow
+                    log.info("using implicit flow");
+                    String access_token = createAccessToken(iss, user, client_id, scope);
+                    String id_token = createIdToken(iss, user, client_id, givenName, familyName, nonce, access_token);
+                    String url = redirect_uri + "#" +
+                            "access_token=" + urlencode(access_token) +
+                            "&token_type=Bearer" +
+                            "&state=" + urlencode(state) +
+                            "&expires_in=" + serverProperties.getTokenExpirationSeconds() +
+                            "&id_token=" + urlencode(id_token);
+                    return ResponseEntity.status(HttpStatus.FOUND).header("Location", url).build();
+                } else if (responseType.contains("code")) {
+                    // authorization code flow
+                    log.info("using authorization code flow {}", code_challenge != null ? "with PKCE" : "");
+                    String code = createAuthorizationCode(code_challenge, code_challenge_method, client_id,
+                            givenName,
+                            familyName, redirect_uri, user, iss, scope, nonce);
+                    String url = redirect_uri + "?" +
+                            "code=" + code +
+                            "&state=" + state;
+                    return ResponseEntity.status(HttpStatus.FOUND).header("Location", url).build();
+                } else {
+                    String url = redirect_uri + "#" + "error=unsupported_response_type";
+                    return ResponseEntity.status(HttpStatus.FOUND).header("Location", url).build();
                 }
             }
-            return response401();
         }
+        return response401();
+        // }
     }
 
     private String createAuthorizationCode(String code_challenge, String code_challenge_method, String client_id,
