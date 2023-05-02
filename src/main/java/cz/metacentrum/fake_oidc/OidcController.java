@@ -226,8 +226,8 @@ public class OidcController {
         map.put("token_type", "Bearer");
         map.put("expires_in", String.valueOf(serverProperties.getTokenExpirationSeconds()));
         map.put("scope", codeInfo.scope);
-        map.put("id_token", createIdToken(codeInfo.iss, codeInfo.user, codeInfo.client_id, codeInfo.client_name,
-                codeInfo.client_password, codeInfo.nonce, accessToken));
+        map.put("id_token", createIdToken(codeInfo.iss, codeInfo.user, codeInfo.client_id, codeInfo.givenName,
+                codeInfo.familyName, codeInfo.nonce, accessToken));
         return ResponseEntity.ok(map);
     }
 
@@ -330,7 +330,7 @@ public class OidcController {
         return access_token;
     }
 
-    private String createIdToken(String iss, User user, String client_id, String client_name, String client_password,
+    private String createIdToken(String iss, User user, String client_id, String givenName, String familyName,
             String nonce, String accessToken) throws NoSuchAlgorithmException, JOSEException {
         // compute at_hash
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
@@ -350,8 +350,8 @@ public class OidcController {
                 .jwtID(UUID.randomUUID().toString())
                 .claim("nonce", nonce)
                 .claim("at_hash", encodedHash)
-                .claim("client_name", client_name)
-                .claim("client_password", client_password)
+                .claim("givenName", givenName)
+                .claim("familyName", familyName)
                 .build();
         // create JWT token
         SignedJWT myToken = new SignedJWT(jwsHeader, jwtClaimsSet);
@@ -397,8 +397,8 @@ public class OidcController {
         final String codeChallengeMethod;
         final String code;
         final String client_id;
-        final String client_name;
-        final String client_password;
+        final String givenName;
+        final String familyName;
         final String redirect_uri;
         final User user;
         final String iss;
@@ -406,14 +406,14 @@ public class OidcController {
         final String nonce;
 
         public CodeInfo(String codeChallenge, String codeChallengeMethod, String code, String client_id,
-                String client_name, String client_password, String redirect_uri, User user, String iss, String scope,
+                String givenName, String familyName, String redirect_uri, User user, String iss, String scope,
                 String nonce) {
             this.codeChallenge = codeChallenge;
             this.codeChallengeMethod = codeChallengeMethod;
             this.code = code;
             this.client_id = client_id;
-            this.client_name = client_name;
-            this.client_password = client_password;
+            this.givenName = givenName;
+            this.familyName = familyName;
             this.redirect_uri = redirect_uri;
             this.user = user;
             this.iss = iss;
